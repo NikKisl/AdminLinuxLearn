@@ -26,11 +26,6 @@ MACHINES = {
                         :size => 250, # Megabytes
                         :port => 4
                 },
-                :sata5 => {
-                        :dfile => './sata5.vdi',
-                        :size => 250, # Megabytes
-                        :port => 5
-                },
                 :sata6 => {
                         :dfile => './sata6.vdi',
                         :size => 250, # Megabytes
@@ -40,6 +35,11 @@ MACHINES = {
                         :dfile => './sata7.vdi',
                         :size => 250, # Megabytes
                         :port => 7
+                },
+                :sata8 => {
+                        :dfile => './sata8.vdi',
+                        :size => 250, # Megabytes
+                        :port => 8
                 }
 
 	}
@@ -62,7 +62,7 @@ Vagrant.configure("2") do |config|
           box.vm.network "private_network", ip: boxconfig[:ip_addr]
 
           box.vm.provider :virtualbox do |vb|
-            	  vb.customize ["modifyvm", :id, "--memory", "2048"]
+            	  vb.customize ["modifyvm", :id, "--memory", "1024"]
                   needsController = false
 		  boxconfig[:disks].each do |dname, dconf|
 			  unless File.exist?(dconf[:dfile])
@@ -81,26 +81,28 @@ Vagrant.configure("2") do |config|
  	  box.vm.provision "shell", inline: <<-SHELL
 	      mkdir -p ~root/.ssh
               cp ~vagrant/.ssh/auth* ~root/.ssh
+	      su -
+	      vagrant
 	      yum install -y mdadm smartmontools hdparm gdisk
-	mdadm --zero-superblock --force /dev/sd{b,c,d,e,f,g,h}
-	mdadm --create --verbose /dev/md0 -I 6 -n 5 /dev/sd{b,c,d,e,f}
-	mkdir /etc/mdadm
-	chmod 757 /etc/mdadm
-	echo "DEVICE partitions" > /etc/mdadm/mdadm.conf
-	mdadm --detail --scan --verbose | awk '/ARRAY/ {print}' >> /etc/mdadm.conf
-	parted -s /dev/md1 mklabel gpt
-	parted /dev/md1 mkpart primary ext4 0% 20%
-	parted /dev/md1 mkpart primary ext4 20% 40%
-	parted /dev/md1 mkpart primary ext4 40% 60%
-	parted /dev/md1 mkpart primary ext4 60% 80%
-	parted /dev/md1 mkpart primary ext4 80% 100%
-	for i in $(seq 1 5);
-	do mkfs.ext4 /dev/md1p$i;
-	done
-	mkdir -p /raid/part{1,2,3,4,5}
-	for i in $(seq 1 5);
-	do mount /dev/md1p$i /raid/part$i;
-	done
+              mdadm --zero-superblock --force /dev/sd{b,c,d,e,f,g,h}
+	      mdadm --create --verbose /dev/md1 -l 6 -n 5 /dev/sd{b,c,d,e,f}
+	      mkdir /etc/mdadm
+	      chmod 757 /etc/mdadm
+	      echo "DEVICE partitions" > /etc/mdadm/mdadm.conf
+	      mdadm --detail --scan --verbose | awk '/ARRAY/ {print}' >> /etc/mdadm.conf
+	      parted -s /dev/md1 mklabel gpt
+	      parted /dev/md1 mkpart primary ext4 0% 20%
+	      parted /dev/md1 mkpart primary ext4 20% 40%
+	      parted /dev/md1 mkpart primary ext4 40% 60%
+	      parted /dev/md1 mkpart primary ext4 60% 80%
+	      parted /dev/md1 mkpart primary ext4 80% 100%
+	      for i in $(seq 1 5);
+	      do mkfs.ext4 /dev/md1p$i;
+	      done
+	      mkdir -p /raid/part{1,2,3,4,5}
+	      for i in $(seq 1 5);
+	      do mount /dev/md1p$i /raid/part$i;
+	      done
   	  SHELL
 
       end
