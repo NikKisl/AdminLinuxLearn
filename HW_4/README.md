@@ -12,3 +12,5 @@ init=/bin/sh и нажимаем сtrl-x для загрузки в систем
 После чего можно убедиться записав данные в любой файл или прочитав вывод команды:
 
 [root@otuslinux ~]# mount | grep root
+
+![alt text](https://yadi.sk/i/qohgyu_fayYE5A/4.1.png)
