@@ -88,3 +88,45 @@ Volume group "VolGroup00" successfully renamed to "OtusRoot"
 VG   #PV #LV #SN Attr   VSize   VFree  OtusRoot   1   2   0 wz--n- <38.97g0
 
 При желании можно так же заменить название Logical Volume
+
+![alt text](screenshots/4.4.png "Смена VG")​
+
+Добавить модуль в initrd Скрипты модулей хранятся в каталоге 
+
+/usr/lib/dracut/modules.d/. 
+
+Для того чтобы добавить свой модуль создаем там папку с именем 01test:
+
+[root@otuslinux ~]# mkdir /usr/lib/dracut/modules.d/01test
+
+В нее поместим два скрипта:
+
+1.module-setup.sh - который устанавливает модуль и вызывает скрипт test.sh
+
+2.test.sh - собственно сам вызываемый скрипт, в нём у нас рисуется пингвинчик
+
+Примеры файлов по ссылкам.
+
+Добавить модуль в initrd
+
+Пересобираем образ initrd
+[root@otuslinux ~]# mkinitrd -f -v /boot/initramfs-$(uname -r).img $(uname -r)
+
+или
+
+[root@otuslinux ~]# dracut -f -v
+
+Можно проверить/посмотреть какие модули загружены в образ:
+
+[root@otuslinux ~]# lsinitrd -m /boot/initramfs-$(uname -r).img | grep test
+
+После чего можно пойти двумя путями для проверки:○Перезагрузиться и руками выключить опции rghb и quiet 
+
+и увидеть вывод○Либо отредактировать grub.cfg убрав эти опции
+
+В итоге при загрузке будет пауза на 10 секунд и вы увидите пингвина 
+
+в выводе терминала
+
+![alt text](screenshots/4.5.png "Пингвинчик")​
+
