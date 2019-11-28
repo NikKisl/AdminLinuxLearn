@@ -55,3 +55,36 @@ init=/bin/sh и нажимаем сtrl-x для загрузки в систем
 В прошлых примерах тоже можно заменить ro на rw
 
 ![alt text](screenshots/4.3.png "Способ 3")​
+
+Первым делом посмотрим текущее состояние системы:
+
+[root@otuslinux ~]# vgs  
+VG   #PV #LV #SN Attr   VSize   VFree  VolGroup00   1   2   0 wz--n- <38.97g0
+
+Нас интересует вторая строка с именем Volume Group●Приступим к переименованию:
+
+[root@otuslinux ~]# vgrename VolGroup00 OtusRoot
+
+Volume group "VolGroup00" successfully renamed to "OtusRoot"
+
+Установить систему с LVM, после чего переименовать VG
+
+Далее правим /etc/fstab, /etc/default/grub, /boot/grub2/grub.cfg. 
+
+Везде заменяем старое название на новое. 
+
+По ссылкам можно увидеть примеры получившихся файлов.
+
+Пересоздаем initrd image, чтобы он знал новое название Volume Group
+
+[root@otuslinux ~]# mkinitrd -f -v /boot/initramfs-$(uname -r).img $(uname -r)
+
+...*** Creating image file done ****** Creating initramfs image file '/boot/initramfs-3.10.0-862.2.3.el7.x86_64.img' done ***
+
+После чего можем перезагружаться и если все сделано правильно успешно грузимся с новым именем Volume Group и проверяем:
+
+[root@otuslinux ~]# vgs  
+
+VG   #PV #LV #SN Attr   VSize   VFree  OtusRoot   1   2   0 wz--n- <38.97g0
+
+При желании можно так же заменить название Logical Volume
