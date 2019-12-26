@@ -81,8 +81,8 @@ Vagrant.configure("2") do |config|
 	    cp httpd-second /etc/sysconfig/
 	    cp first.conf /etc/httpd/conf/
 	    cp second.conf /etc/httpd/conf/
-	    cp http@first.service /etc/systemd/system
-	    cp httpd@second.service /etc/systemd/system
+	    cp http@first.service /etc/systemd/system/
+	    cp httpd@second.service /etc/systemd/system/
 	    chmod +x /opt/watchlog.sh
 	    cd /opt/
 	    ./watchlog.sh ALERT /var/log/watchlog.log
