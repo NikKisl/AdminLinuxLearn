@@ -9,7 +9,9 @@
 - **Packer** - ПО для создания образов виртуальных машин;
 - **Git** - система контроля версий
 - **Python 3.8** - ЯП для компиляции Mech (https://www.python.org/ftp/python/3.8.1/python-3.8.1-amd64.exe)
+- **PyPi** - скрипт для установки Mech https://pythonru.com/baza-znanij/ustanovka-pip-dlja-python-i-bazovye-komandy
 - **Mech** - скрипт для использования Vagrant с VMware (https://github.com/mechboxes/mech#start-of-content)
+
 А так же аккаунты:
 
 - **GitHub** - https://github.com/
@@ -22,7 +24,14 @@
 ### **Vagrant**
 Переходим на https://www.vagrantup.com/downloads.html выбираем соответствующую версию. 
 
+### **Python 3.8**
+Из общей папки устанавливаем. 
 
+### **PyPi**
+Из общей папки устанавливаем. Инструкция на сайте https://pythonru.com/baza-znanij/ustanovka-pip-dlja-python-i-bazovye-komandy
+
+### **Mech**
+Из общей папки устанавливаем. Инструкция на сайте (https://github.com/mechboxes/mech#start-of-content)
 
 ### **Packer**
 Переходим на https://www.packer.io/downloads.html выбираем соответствующую версию. 
