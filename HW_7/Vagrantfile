@@ -42,34 +42,30 @@ Vagrant.configure("2") do |config|
         v.memory = boxconfig[:memory]
         v.cpus = boxconfig[:cpus]
      config.vm.provision "shell", inline: <<-SHELL
-sudo bash &&
-yum install -y rpmdevtools gcc  make wget gd-devel automake  yum-utils perl-devel zlib-devel createrepo pcre-devel GeoIP-devel openssl-devel libxslt-devel openldap-devel perl-ExtUtils-Embed &&
+yum install -y rpmdevtools gcc  make wget gd-devel automake  yum-utils perl-devel zlib-devel createrepo pcre-devel GeoIP-devel openssl-devel libxslt-devel openldap-devel perl-ExtUtils-Embed\
+echo "builder    ALL=(ALL)      NOPASSWD: ALL" >> /etc/sudoers\
+mkdir /home/builder\
+useradd builder -D /home/builder -G wheel -p builder\
+su builder\
+rpmdev-setuptree rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm\
+wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip\
+unzip master.zip && sudo mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1\
+tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1\
+mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES\ 
+rm -rf master.zip nginx-auth-ldap-0.1/\
 
-echo "builder    ALL=(ALL)      NOPASSWD: ALL" >> /etc/sudoers &&  mkdir /home/builder && useradd builder -d /home/builder -G wheel -p builder -s /bin/bash &&
-su builder &&
-sudo rpmdev-setuptree rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm &&
-sudo wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip &&
-sudo unzip master.zip && sudo mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1 &&
-sudo tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1 && 
-sudo mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES && 
-sudo rm -rf master.zip nginx-auth-ldap-0.1/ &&
+yum install -y rpmdevtools gcc make wget gd-devel automake yum-utils perl-devel zlib-devel createrepo pcre-devel GeoIP-devel openssl-devel libxslt-devel openldap-devel perl-ExtUtils-Embed\
 
-
-
-
-
-echo "#!/bin/bash
-sudo bash &&
-yum install -y rpmdevtools gcc make wget gd-devel automake yum-utils perl-devel zlib-devel createrepo pcre-devel GeoIP-devel openssl-devel libxslt-devel openldap-devel perl-ExtUtils-Embed &&
-
-echo "builder    ALL=(ALL)      NOPASSWD: ALL" >> /etc/sudoers &&  mkdir /home/builder && useradd builder -d /home/builder -G wheel -p builder -s /bin/bash &&
-su builder &&
-sudo rpmdev-setuptree rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm &&
-sudo wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip &&
-sudo unzip master.zip && sudo mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1 &&
-sudo tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1 && 
-sudo mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES && 
-sudo rm -rf master.zip nginx-auth-ldap-0.1/ &&
+echo "builder    ALL=(ALL)      NOPASSWD: ALL" >> /etc/sudoers\ 
+mkdir /home/builder\
+useradd builder -D /home/builder -G wheel -p builder\
+su builder\
+sudo rpmdev-setuptree rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm\
+sudo wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip\
+sudo unzip master.zip && sudo mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1\
+sudo tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1\
+sudo mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES\ 
+sudo rm -rf master.zip nginx-auth-ldap-0.1/\
 
 
 
@@ -846,27 +842,28 @@ fi
 - replace "conf.d/*" config include with "conf.d/*.conf" in default nginx.conf
 
 * Wed Aug 10 2011 Sergey Budnevitch
-- Initial release" > /home/builder/rpmbuild/SPECS/nginx.spec &&
+- Initial release" > /home/builder/rpmbuild/SPECS/nginx.spec\
 
 
-sudo rpmbuild -ba /home/builder/rpmbuild/SPECS/nginx.spec &&
-sudo rpm -i /home/builder/rpmbuild/RPMS/x86_64/nginx-1.10.1-1.el7.ngx.x86_64.rpm &&
+rpmbuild -ba /home/builder/rpmbuild/SPECS/nginx.spec\
+rpm -i /home/builder/rpmbuild/RPMS/x86_64/nginx-1.10.1-1.el7.ngx.x86_64.rpm\
 
 
 
-sudo mkdir /usr/share/nginx/html/repo &&
-sudo rm -rf /usr/share/nginx/html/* &&
-sudo cp /home/builder/rpmbuild/RPMS/x86_64/*.rpm /usr/share/nginx/html/repo &&
-sudo wget http://www.percona.com/downloads/percona-release/redhat/0.1-6/percona-release-0.1-6.noarch.rpm -O /usr/share/nginx/html/repo/percona-release-0.1-6.noarch.rpm &&
-sudo createrepo /usr/share/nginx/html/repo/ &&
-sudo nginx -t && sudo nginx -s reload &&
-sudo cat >> /etc/yum.repos.d/otus.repo << EOF
+
+
+mkdir /usr/share/nginx/html/repo\
+rm -rf /usr/share/nginx/html/*\
+cp /home/builder/rpmbuild/RPMS/x86_64/*.rpm /usr/share/nginx/html/repo\
+wget http://www.percona.com/downloads/percona-release/redhat/0.1-6/percona-release-0.1-6.noarch.rpm -O /usr/share/nginx/html/repo/percona-release-0.1-6.noarch.rpm\
+nginx -t && sudo nginx -s reload\
+cat <<EOF > /etc/yum.repos.d/otus.repo
 [otus]
 name=otus-linux
 baseurl=http://localhost/repo
 gpgcheck=0
 enabled=1
-EOF &&
+EOF\
 sudo yum install percona-release -y
 SHELL
 end

@@ -1,0 +1,6 @@
+{
+  "box": "bento/centos-6.7",
+  "box_version": "2.2.7",
+  "name": "l",
+  "url": "https://vagrantcloud.com/bento/boxes/centos-6.7/versions/2.2.7/providers/vmware_desktop.box"
+}
