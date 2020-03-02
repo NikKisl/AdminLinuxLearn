@@ -23,21 +23,33 @@ sudo yum install -y rpmdevtools \
 Создаем пользователя и логинимся в него:
 
 sudo adduser builder
+
 sudo passwd builder
+
 sudo gpasswd -a builder wheel
+
 sudo su - builder
+
 Создаем структуру каталогов и скачиваем SRPM пакет nginx:
 
 rpmdev-setuptree
+
 rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm
+
 Далее забираем с Github модуль nginx, который хотим добавить и готовим его нужным образом, кладем в SOURCES:
 
 wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip
+
 unzip master.zip
+
 mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1
+
 tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1
+
 mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES/
+
 rm -rf master.zip nginx-auth-ldap-0.1/
+
 Правим SPEC файл:
 
 vi /home/builder/rpmbuild/SPECS/nginx.spec
@@ -56,7 +68,9 @@ vi /home/builder/rpmbuild/SPECS/nginx.spec
 Соберем новый пакет и установим его:
 
 rpmbuild -ba /home/builder/rpmbuild/SPECS/nginx.spec
+
 sudo rpm -i /home/builder/rpmbuild/RPMS/x86_64/nginx-1.10.1-1.el7.ngx.x86_64.rpm
+
 Получим удачную установку nginx:
 
 ----------------------------------------------------------------------
