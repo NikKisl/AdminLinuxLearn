@@ -1,126 +1,56 @@
-
+#
 %define nginx_home %{_localstatedir}/cache/nginx
 %define nginx_user nginx
 %define nginx_group nginx
 %define nginx_loggroup adm
 
+# distribution specific definitions
+%define use_systemd (0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315 || 0%{?amzn} >= 2)
 
-%define use_systemd (0%{?fedora} && 0%{?fedora} >= 18) || (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} == 1315)
-
-%if 0%{?rhel}  == 5
-%define _group System Environment/Daemons
-Requires(pre): shadow-utils
-Requires: initscripts >= 8.36
-Requires(post): chkconfig
-Requires: openssl
-BuildRequires: openssl-devel
-BuildRequires: perl
-BuildRequires: GeoIP-devel
+%if %{use_systemd}
+BuildRequires: systemd
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 %endif
 
-%if 0%{?rhel}  == 6
+%if 0%{?rhel} == 6
 %define _group System Environment/Daemons
-%define with_http2 1
 Requires(pre): shadow-utils
 Requires: initscripts >= 8.36
 Requires(post): chkconfig
 Requires: openssl >= 1.0.1
 BuildRequires: openssl-devel >= 1.0.1
-BuildRequires: perl-devel
-BuildRequires: perl-ExtUtils-Embed
-BuildRequires: GeoIP-devel
 %endif
 
-%if 0%{?rhel}  == 7
+%if 0%{?rhel} == 7
 %define _group System Environment/Daemons
 %define epoch 1
-%define with_http2 1
 Epoch: %{epoch}
 Requires(pre): shadow-utils
-Requires: systemd
-Requires: openssl >= 1.0.1
-BuildRequires: systemd
-BuildRequires: openssl-devel >= 1.0.1
-BuildRequires: perl-devel
-BuildRequires: perl-ExtUtils-Embed
-BuildRequires: GeoIP-devel
+Requires: openssl >= 1.0.2
+BuildRequires: openssl-devel >= 1.0.2
+%define dist .el7
 %endif
 
-%if 0%{?suse_version} == 1315
+%if 0%{?suse_version} >= 1315
 %define _group Productivity/Networking/Web/Servers
-%define with_http2 1
 %define nginx_loggroup trusted
 Requires(pre): shadow
-Requires: systemd
 BuildRequires: libopenssl-devel
-BuildRequires: systemd
-BuildRequires: perl
-BuildRequires: libGeoIP-devel
 %endif
 
+# end of distribution specific definitions
 
-
-%define main_version                 1.10.1
-%define main_release                 1%{?dist}.ngx
-%define module_xslt_version          %{main_version}
-%define module_xslt_release          1%{?dist}.ngx
-%define module_geoip_version         %{main_version}
-%define module_geoip_release         1%{?dist}.ngx
-%define module_image_filter_version  %{main_version}
-%define module_image_filter_release  1%{?dist}.ngx
-%define module_perl_version          %{main_version}
-%define module_perl_release          1%{?dist}.ngx
-%define module_njs_shaid             1c50334fbea6
-%define module_njs_version           %{main_version}.0.0.20160414.%{module_njs_shaid}
-%define module_njs_release           1%{?dist}.ngx
+%define main_version 1.16.0
+%define main_release 1%{?dist}.ngx
 
 %define bdir %{_builddir}/%{name}-%{main_version}
 
-%define WITH_CC_OPT $(echo %{optflags} $(pcre-config --cflags))
+%define WITH_CC_OPT $(echo %{optflags} $(pcre-config --cflags)) -fPIC
+%define WITH_LD_OPT -Wl,-z,relro -Wl,-z,now -pie
 
-%define COMMON_CONFIGURE_ARGS $(echo "\
-        --prefix=%{_sysconfdir}/nginx \
-        --sbin-path=%{_sbindir}/nginx \
-        --modules-path=%{_libdir}/nginx/modules \
-        --conf-path=%{_sysconfdir}/nginx/nginx.conf \
-        --error-log-path=%{_localstatedir}/log/nginx/error.log \
-        --http-log-path=%{_localstatedir}/log/nginx/access.log \
-        --pid-path=%{_localstatedir}/run/nginx.pid \
-        --lock-path=%{_localstatedir}/run/nginx.lock \
-        --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp \
-        --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp \
-        --user=%{nginx_user} \
-        --group=%{nginx_group} \
-        --with-http_ssl_module \
-        --with-http_realip_module \
-        --with-http_addition_module \
-        --with-http_sub_module \
-        --with-http_dav_module \
-        --with-http_flv_module \
-        --with-http_mp4_module \
-        --with-http_gunzip_module \
-        --with-http_gzip_static_module \
-        --with-http_random_index_module \
-        --with-http_secure_link_module \
-        --with-http_stub_status_module \
-        --with-http_auth_request_module \
-        --with-http_xslt_module=dynamic \
-        --with-http_image_filter_module=dynamic \
-        --with-http_geoip_module=dynamic \
-        --with-http_perl_module=dynamic \
-        --add-dynamic-module=njs-%{module_njs_shaid}/nginx \
-        --with-threads \
-        --with-stream \
-        --with-stream_ssl_module \
-        --with-http_slice_module \
-        --with-mail \
-        --with-mail_ssl_module \
-        --with-file-aio \
-        --with-ipv6 \
-        %{?with_http2:--with-http_v2_module}")
+%define BASE_CONFIGURE_ARGS $(echo "--prefix=%{_sysconfdir}/nginx --sbin-path=%{_sbindir}/nginx --modules-path=%{_libdir}/nginx/modules --conf-path=%{_sysconfdir}/nginx/nginx.conf --error-log-path=%{_localstatedir}/log/nginx/error.log --http-log-path=%{_localstatedir}/log/nginx/access.log --pid-path=%{_localstatedir}/run/nginx.pid --lock-path=%{_localstatedir}/run/nginx.lock --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp --user=%{nginx_user} --group=%{nginx_group} --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module")
 
 Summary: High performance web server
 Name: nginx
@@ -142,15 +72,13 @@ Source9: nginx.upgrade.sh
 Source10: nginx.suse.logrotate
 Source11: nginx-debug.service
 Source12: COPYRIGHT
-Source13: njs-%{module_njs_shaid}.tar.gz
-Source14: nginx-auth-ldap-0.1.tar.gz
+Source13: nginx.check-reload.sh
+
 License: 2-clause BSD-like license
 
 BuildRoot: %{_tmppath}/%{name}-%{main_version}-%{main_release}-root
 BuildRequires: zlib-devel
 BuildRequires: pcre-devel
-BuildRequires: libxslt-devel
-BuildRequires: gd-devel
 
 Provides: webserver
 
@@ -158,99 +86,35 @@ Provides: webserver
 nginx [engine x] is an HTTP and reverse proxy server, as well as
 a mail proxy server.
 
-%if 0%{?suse_version} == 1315
+%if 0%{?suse_version} >= 1315
 %debug_package
 %endif
 
-%package module-xslt
-Version: %{module_xslt_version}
-Release: %{module_xslt_release}
-Group: %{_group}
-Requires: nginx = %{?epoch:%{epoch}:}%{main_version}-%{main_release}
-Summary: nginx xslt module
-%description module-xslt
-Dynamic xslt module for nginx.
-
-%package module-image-filter
-Version: %{module_image_filter_version}
-Release: %{module_image_filter_release}
-Group: %{_group}
-Requires: nginx = %{?epoch:%{epoch}:}%{main_version}-%{main_release}
-Summary: nginx image filter module
-%description module-image-filter
-Dynamic image filter module for nginx.
-
-%package module-geoip
-Version: %{module_geoip_version}
-Release: %{module_geoip_release}
-Group: %{_group}
-Requires: nginx = %{?epoch:%{epoch}:}%{main_version}-%{main_release}
-Summary: nginx geoip module
-%description module-geoip
-Dynamic geoip module for nginx.
-
-%package module-perl
-Version: %{module_perl_version}
-Release: %{module_perl_release}
-Group: %{_group}
-Requires: nginx = %{?epoch:%{epoch}:}%{main_version}-%{main_release}
-Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Summary: nginx perl module
-%description module-perl
-Dynamic perl module for nginx.
-
-%package module-njs
-Version: %{module_njs_version}
-Release: %{module_njs_release}
-Group: %{_group}
-Requires: nginx = %{?epoch:%{epoch}:}%{main_version}-%{main_release}
-Summary: nginx nJScript module
-%description module-njs
-Dynamic nJScript module for nginx.
-
 %prep
 %setup -q
-tar xvzf %SOURCE13
 cp %{SOURCE2} .
 sed -e 's|%%DEFAULTSTART%%|2 3 4 5|g' -e 's|%%DEFAULTSTOP%%|0 1 6|g' \
     -e 's|%%PROVIDES%%|nginx|g' < %{SOURCE2} > nginx.init
 sed -e 's|%%DEFAULTSTART%%||g' -e 's|%%DEFAULTSTOP%%|0 1 2 3 4 5 6|g' \
     -e 's|%%PROVIDES%%|nginx-debug|g' < %{SOURCE2} > nginx-debug.init
-%{__tar} zxvf %{SOURCE14}
-%setup -T -D -a 14
+
 %build
-./configure %{COMMON_CONFIGURE_ARGS} \
+./configure %{BASE_CONFIGURE_ARGS} \
     --with-cc-opt="%{WITH_CC_OPT}" \
+    --with-ld-opt="%{WITH_LD_OPT}" \
+    --with-openssl="/root/openssl" \
     --with-debug
 make %{?_smp_mflags}
 %{__mv} %{bdir}/objs/nginx \
     %{bdir}/objs/nginx-debug
-%{__mv} %{bdir}/objs/ngx_http_xslt_filter_module.so \
-    %{bdir}/objs/ngx_http_xslt_filter_module-debug.so
-%{__mv} %{bdir}/objs/ngx_http_image_filter_module.so \
-    %{bdir}/objs/ngx_http_image_filter_module-debug.so
-%{__mv} %{bdir}/objs/ngx_http_geoip_module.so \
-    %{bdir}/objs/ngx_http_geoip_module-debug.so
-%{__mv} %{bdir}/objs/ngx_http_perl_module.so \
-    %{bdir}/objs/ngx_http_perl_module-debug.so
-%{__mv} %{bdir}/objs/src/http/modules/perl/blib/arch/auto/nginx/nginx.so \
-    %{bdir}/objs/src/http/modules/perl/blib/arch/auto/nginx/nginx-debug.so
-%{__mv} %{bdir}/objs/ngx_http_js_module.so \
-    %{bdir}/objs/ngx_http_js_module-debug.so
-./configure %{COMMON_CONFIGURE_ARGS} \
-    --with-cc-opt="%{WITH_CC_OPT}"
-make %{?_smp_mflags}
-./configure %{COMMON_CONFIGURE_ARGS} \
+./configure %{BASE_CONFIGURE_ARGS} \
     --with-cc-opt="%{WITH_CC_OPT}" \
-    --add-module=%{_builddir}/%{name}-%{main_version}/nginx-auth-ldap-0.1
+    --with-ld-opt="%{WITH_LD_OPT}"
+make %{?_smp_mflags}
+
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
 %{__make} DESTDIR=$RPM_BUILD_ROOT INSTALLDIRS=vendor install
-
-find %{buildroot} -type f -name .packlist -exec rm -f '{}' \;
-find %{buildroot} -type f -name perllocal.pod -exec rm -f '{}' \;
-find %{buildroot} -type f -empty -exec rm -f '{}' \;
-find %{buildroot} -type f -name nginx.so -exec chmod u+w '{}' \;
 
 %{__mkdir} -p $RPM_BUILD_ROOT%{_datadir}/nginx
 %{__mv} $RPM_BUILD_ROOT%{_sysconfdir}/nginx/html $RPM_BUILD_ROOT%{_datadir}/nginx/
@@ -283,8 +147,11 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx && \
 %{__install} -m 644 -p %{SOURCE7} \
     $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/nginx-debug
 
-%if %{use_systemd}
+%{__install} -p -D -m 0644 %{bdir}/objs/nginx.8 \
+    $RPM_BUILD_ROOT%{_mandir}/man8/nginx.8
 
+%if %{use_systemd}
+# install systemd-specific files
 %{__mkdir} -p $RPM_BUILD_ROOT%{_unitdir}
 %{__install} -m644 %SOURCE8 \
     $RPM_BUILD_ROOT%{_unitdir}/nginx.service
@@ -293,14 +160,16 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx && \
 %{__mkdir} -p $RPM_BUILD_ROOT%{_libexecdir}/initscripts/legacy-actions/nginx
 %{__install} -m755 %SOURCE9 \
     $RPM_BUILD_ROOT%{_libexecdir}/initscripts/legacy-actions/nginx/upgrade
+%{__install} -m755 %SOURCE13 \
+    $RPM_BUILD_ROOT%{_libexecdir}/initscripts/legacy-actions/nginx/check-reload
 %else
-
+# install SYSV init stuff
 %{__mkdir} -p $RPM_BUILD_ROOT%{_initrddir}
 %{__install} -m755 nginx.init $RPM_BUILD_ROOT%{_initrddir}/nginx
 %{__install} -m755 nginx-debug.init $RPM_BUILD_ROOT%{_initrddir}/nginx-debug
 %endif
 
-
+# install log rotation stuff
 %{__mkdir} -p $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
 %if 0%{?suse_version}
 %{__install} -m 644 -p %{SOURCE10} \
@@ -312,20 +181,6 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx && \
 
 %{__install} -m755 %{bdir}/objs/nginx-debug \
     $RPM_BUILD_ROOT%{_sbindir}/nginx-debug
-
-%{__install} -m644 %{bdir}/objs/ngx_http_xslt_filter_module-debug.so \
-    $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_xslt_filter_module-debug.so
-%{__install} -m644 %{bdir}/objs/ngx_http_image_filter_module-debug.so \
-    $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_image_filter_module-debug.so
-%{__install} -m644 %{bdir}/objs/ngx_http_geoip_module-debug.so \
-    $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_geoip_module-debug.so
-%{__install} -m644 %{bdir}/objs/ngx_http_perl_module-debug.so \
-    $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_perl_module-debug.so
-%{__mkdir} -p $RPM_BUILD_ROOT%{perl_vendorarch}/auto/nginx
-%{__install} -m644 %{bdir}/objs/src/http/modules/perl/blib/arch/auto/nginx/nginx-debug.so \
-    $RPM_BUILD_ROOT%{perl_vendorarch}/auto/nginx/nginx-debug.so
-%{__install} -m644 %{bdir}/objs/ngx_http_js_module-debug.so \
-    $RPM_BUILD_ROOT%{_libdir}/nginx/modules/ngx_http_js_module-debug.so
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -374,34 +229,10 @@ cd $RPM_BUILD_ROOT%{_sysconfdir}/nginx && \
 
 %dir %{_datadir}/doc/%{name}-%{main_version}
 %doc %{_datadir}/doc/%{name}-%{main_version}/COPYRIGHT
-
-%files module-xslt
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_xslt_filter_module.so
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_xslt_filter_module-debug.so
-
-%files module-image-filter
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_image_filter_module.so
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_image_filter_module-debug.so
-
-%files module-geoip
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_geoip_module.so
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_geoip_module-debug.so
-
-%files module-perl
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_perl_module.so
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_perl_module-debug.so
-%dir %{perl_vendorarch}/auto/nginx
-%{perl_vendorarch}/nginx.pm
-%{perl_vendorarch}/auto/nginx/nginx.so
-%{perl_vendorarch}/auto/nginx/nginx-debug.so
-%{_mandir}/man3/nginx.3pm*
-
-%files module-njs
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_js_module.so
-%attr(0644,root,root) %{_libdir}/nginx/modules/ngx_http_js_module-debug.so
+%{_mandir}/man8/nginx.8*
 
 %pre
-
+# Add the "nginx" user
 getent group %{nginx_group} >/dev/null || groupadd -r %{nginx_group}
 getent passwd %{nginx_user} >/dev/null || \
     useradd -r -g %{nginx_group} -s /sbin/nologin \
@@ -409,7 +240,7 @@ getent passwd %{nginx_user} >/dev/null || \
 exit 0
 
 %post
-
+# Register the nginx service
 if [ $1 -eq 1 ]; then
 %if %{use_systemd}
     /usr/bin/systemctl preset nginx.service >/dev/null 2>&1 ||:
@@ -418,7 +249,7 @@ if [ $1 -eq 1 ]; then
     /sbin/chkconfig --add nginx
     /sbin/chkconfig --add nginx-debug
 %endif
-    
+    # print site info
     cat <<BANNER
 ----------------------------------------------------------------------
 
@@ -427,13 +258,17 @@ Thanks for using nginx!
 Please find the official documentation for nginx here:
 * http://nginx.org/en/docs/
 
+Please subscribe to nginx-announce mailing list to get
+the most important news about nginx:
+* http://nginx.org/en/support.html
+
 Commercial subscriptions for nginx are available on:
 * http://nginx.com/products/
 
 ----------------------------------------------------------------------
 BANNER
 
-   
+    # Touch and set permisions on default log files on installation
 
     if [ -d %{_localstatedir}/log/nginx ]; then
         if [ ! -e %{_localstatedir}/log/nginx/access.log ]; then
@@ -448,96 +283,6 @@ BANNER
             %{__chown} nginx:%{nginx_loggroup} %{_localstatedir}/log/nginx/error.log
         fi
     fi
-fi
-
-%post module-xslt
-if [ $1 -eq 1 ]; then
-    cat <<BANNER
-----------------------------------------------------------------------
-
-The XSLT dynamic module for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_xslt_filter_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_xslt_module.html
-
-----------------------------------------------------------------------
-BANNER
-fi
-
-%post module-geoip
-if [ $1 -eq 1 ]; then
-    cat <<BANNER
-----------------------------------------------------------------------
-
-The GeoIP dynamic module for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_geoip_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_geoip_module.html
-
-----------------------------------------------------------------------
-BANNER
-fi
-
-%post module-image-filter
-if [ $1 -eq 1 ]; then
-    cat <<BANNER
-----------------------------------------------------------------------
-
-The image filter dynamic module for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_image_filter_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_image_filter_module.html
-
-----------------------------------------------------------------------
-BANNER
-fi
-
-%post module-perl
-if [ $1 -eq 1 ]; then
-    cat <<BANNER
-----------------------------------------------------------------------
-
-The perl dynamic module for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_perl_module.so;
-
-Please refer to the module documentation for further details:
-http://nginx.org/en/docs/http/ngx_http_perl_module.html
-
-----------------------------------------------------------------------
-BANNER
-fi
-
-%post module-njs
-if [ $1 -eq 1 ]; then
-    cat <<BANNER
-----------------------------------------------------------------------
-
-The nJScript dynamic module for nginx has been installed.
-To enable this module, add the following to /etc/nginx/nginx.conf
-and reload nginx:
-
-    load_module modules/ngx_http_js_module.so;
-
-Please refer to the module documentation for further details:
-https://www.nginx.com/resources/wiki/nginScript/
-
-----------------------------------------------------------------------
-BANNER
 fi
 
 %preun
@@ -563,22 +308,154 @@ if [ $1 -ge 1 ]; then
 fi
 
 %changelog
-* Tue May 31 2016 Konstantin Pavlov <thresh@nginx.com>
-- 1.10.1
+* Tue Apr 23 2019 Konstantin Pavlov <thresh@nginx.com>
+- 1.16.0
 
-* Tue Apr 26 2016 Konstantin Pavlov <thresh@nginx.com>
-- 1.10.0
+* Tue Apr 16 2019 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.12
+
+* Tue Apr 09 2019 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.11
+
+* Tue Mar 26 2019 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.10
+
+* Tue Feb 26 2019 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.9
+
+* Tue Dec 25 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.8
+
+* Tue Nov 27 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.7
+
+* Tue Nov 06 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.6
+- Fixes CVE-2018-16843
+- Fixes CVE-2018-16844
+- Fixes CVE-2018-16845
+
+* Tue Oct 02 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.5
+
+* Tue Sep 25 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.4
+
+* Tue Aug 28 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.3
+
+* Tue Jul 24 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.2
+
+* Tue Jul 03 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.1
+
+* Tue Jun 05 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.15.0
+
+* Mon Apr 09 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.12
+
+* Tue Apr 03 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.11
+
+* Tue Mar 20 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.10
+
+* Tue Feb 20 2018 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.9
+
+* Tue Dec 26 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.8
+
+* Tue Nov 21 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.7
+
+* Tue Oct 10 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.6
+
+* Tue Sep  5 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.5
+
+* Tue Aug  8 2017 Sergey Budnevitch <sb@nginx.com>
+- 1.13.4
+
+* Tue Jul 11 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.3
+- Fixes CVE-2017-7529
+
+* Tue Jun 27 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.2
+
+* Tue May 30 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.1
+
+* Tue Apr 25 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.13.0
+
+* Tue Apr  4 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.13
+- CentOS7/RHEL7: made upgrade loops/timeouts configurable via
+  /etc/sysconfig/nginx.
+- Bumped upgrade defaults to five loops one second each.
+
+* Fri Mar 24 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.12
+
+* Tue Mar 21 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.11
+
+* Tue Feb 14 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.10
+
+* Tue Jan 24 2017 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.9
+- Extended hardening build flags.
+- Added check-reload target to init script / systemd service.
+
+* Tue Dec 27 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.8
+
+* Tue Dec 13 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.7
+
+* Tue Nov 15 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.6
+
+* Mon Oct 10 2016 Andrei Belov <defan@nginx.com>
+- 1.11.5
+
+* Tue Sep 13 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.4.
+- njs updated to 0.1.2.
+
+* Tue Jul 26 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.3.
+- njs updated to 0.1.0.
+- njs stream dynamic module added to nginx-module-njs package.
+- geoip stream dynamic module added to nginx-module-geoip package.
+
+* Tue Jul  5 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.2
+- njs updated to ef2b708510b1.
+
+* Tue May 31 2016 Konstantin Pavlov <thresh@nginx.com>
+- 1.11.1
+
+* Tue May 24 2016 Sergey Budnevitch <sb@nginx.com>
+- Fixed logrotate error if nginx is not running
+- 1.11.0
 
 * Tue Apr 19 2016 Konstantin Pavlov <thresh@nginx.com>
 - 1.9.15
 - njs updated to 1c50334fbea6.
 
-* Tue Apr 04 2016 Konstantin Pavlov <thresh@nginx.com>
+* Tue Apr  5 2016 Konstantin Pavlov <thresh@nginx.com>
 - 1.9.14
 
 * Tue Mar 29 2016 Konstantin Pavlov <thresh@nginx.com>
 - 1.9.13
-- Added perl and nJScript dynamic modules
+- Added perl and njs dynamic modules
 - Fixed Requires section for dynamic modules on CentOS7/RHEL7
 
 * Wed Feb 24 2016 Sergey Budnevitch <sb@nginx.com>
