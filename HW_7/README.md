@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 ## Домашнее задание
 1) Создать свой RPM пакет ( возþмем пакет NGINX и соберем его с openssl c поддержкой ГОСТ шифрования)
 2) Создать свой репозиторий и разместить там ранее собранный RPM
@@ -6,14 +6,8 @@
 
 1) Устанавливаются нужные пакеты для работы:
 ```
-yum install -y \
-redhat-lsb-core \
-wget \
-rpmdevtools \
-rpm-build \
-createrepo \
-yum-utils \
-gcc
+[root@localhost ~]# yum install -y rpmdevtools gcc  make wget gd-devel automake  yum-utils perl-devel zlib-devel create
+repo pcre-devel GeoIP-devel openssl-devel libxslt-devel openldap-devel perl-ExtUtils-Embed git tree nano
 
 ```
 2) Загрузим SRPM пакет NGINX длā дальнейшей работы над ним:
@@ -21,8 +15,7 @@ gcc
 wget https://nginx.org/packages/centos/7/SRPMS/nginx-1.16.0-1.el7.ngx.src.rpm
 rpm -i nginx-1.16.0-1.el7.ngx.src.rpm
 ```
-Когда устанавливаются src rpm, то происходит разорхивация в домашнюю директорию полтзователя из под которого идет работа.
-Ожидаемый пользователь - builder
+Когда устанавливаются src rpm, то происходит разорхивация в домашнюю директорию пользователя из под которого идет работа.
 
 3) Также нужно скачать и разархивировать последнии исходники для openssl - он
 потребуется при сборке
@@ -30,16 +23,18 @@ rpm -i nginx-1.16.0-1.el7.ngx.src.rpm
 git clone https://github.com/deemru/openssl.git
 ```
 ```
-[builder@node2 ~]$ ll
-итого 4
-drwxr-xr-x. 23 builder builder 4096 май 17 21:29 openssl
-drwxr-xr-x.  4 builder builder   34 май 17 21:31 rpmbuild
-
+[root@localhost ~]# ll
+total 1048
+-rw-------.  1 root root    5763 May 12  2018 anaconda-ks.cfg
+-rw-r--r--.  1 root root 1051956 Apr 23  2019 nginx-1.16.0-1.el7.ngx.src.rpm
+drwxr-xr-x. 24 root root    4096 Mar  9 12:55 openssl
+-rw-------.  1 root root    5432 May 12  2018 original-ks.cfg
+drwxr-xr-x.  8 root root      89 Mar  9 12:51 rpmbuild
 ```
 4) Заранее устанавливаются зависимости:
 
 ```
-[builder@node2 ~]$ sudo yum-builddep rpmbuild/SPECS/nginx.spec
+[root@localhost ~]# yum-builddep rpmbuild/SPECS/nginx.spec
 
 ```
 ```
@@ -76,141 +71,40 @@ drwxr-xr-x.  4 builder builder   34 май 17 21:31 rpmbuild
  ```
  Теперь можно установить наш пакет и убедится, что nginx работает
  ```
-[root@packages ~]# yum localinstall -y \
+[root@localhost ~]# yum localinstall -y \
 rpmbuild/RPMS/x86_64/nginx-1.16.0-1.el7.ngx.x86_64.rpm
-[root@packages ~]# systemctl start nginx
-[root@packages ~]# systemctl status nginx
- nginx.service - nginx - high performance web server
- Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
- Active: active (running) since Thu 2018-11-29 07:34:19 UTC; 14min ago
+[root@localhost ~]# systemctl start nginx
+[root@localhost ~]#  systemctl status nginx
+? nginx.service - nginx - high performance web server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
+   Active: active (running) since Mon 2020-03-09 12:58:41 UTC; 5s ago
+     Docs: http://nginx.org/en/docs/
+  Process: 13151 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf (code=exited, status=0/SUCCESS)
+ Main PID: 13152 (nginx)
+   CGroup: /system.slice/nginx.service
+           ├─13152 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+           └─13153 nginx: worker process
+
+Mar 09 12:58:41 localhost.localdomain systemd[1]: Starting nginx - high performance web server...
+Mar 09 12:58:41 localhost.localdomain systemd[1]: PID file /var/run/nginx.pid not readable (yet?) after start.
+Mar 09 12:58:41 localhost.localdomain systemd[1]: Started nginx - high performance web server.
  ```
  Откроем порт 
  ```
  iptables -A IN_public_allow -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
  ```
-=======
-# rpm_repository
 
-Cоздать свой RPM (можно взять свое приложение, либо собрать к примеру апач с определенными опциями)
-
-становим все, что нам понадобится в этой домашней работе:
-
-sudo yum install -y rpmdevtools \
-                    gcc \ 
-                    make \
-                    wget \
-                    gd-devel \
-                    automake \ 
-                    yum-utils \
-                    perl-devel \
-                    zlib-devel \
-                    createrepo \
-                    pcre-devel \
-                    GeoIP-devel \
-                    openssl-devel \
-                    libxslt-devel \
-                    openldap-devel \
-                    perl-ExtUtils-Embed 
-Создаем пользователя и логинимся в него:
-
-sudo adduser builder
-
-sudo passwd builder
-
-sudo gpasswd -a builder wheel
-
-sudo su - builder
-
-Создаем структуру каталогов и скачиваем SRPM пакет nginx:
-
-rpmdev-setuptree
-
-rpm -Uvh http://nginx.org/packages/rhel/7/SRPMS/nginx-1.10.1-1.el7.ngx.src.rpm
-
-Далее забираем с Github модуль nginx, который хотим добавить и готовим его нужным образом, кладем в SOURCES:
-
-wget -O master.zip https://github.com/kvspb/nginx-auth-ldap/archive/master.zip
-
-unzip master.zip
-
-mv nginx-auth-ldap-master/ nginx-auth-ldap-0.1
-
-tar cfz nginx-auth-ldap-0.1.tar.gz nginx-auth-ldap-0.1
-
-mv nginx-auth-ldap-0.1.tar.gz  ~/rpmbuild/SOURCES/
-
-rm -rf master.zip nginx-auth-ldap-0.1/
-
-Правим SPEC файл:
-
-vi /home/builder/rpmbuild/SPECS/nginx.spec
-
-# Добавим в Source
-  Source14: nginx-auth-ldap-0.1.tar.gz
-  
-# Добавим в %prep
-  %{__tar} zxvf %{SOURCE14}
-  %setup -T -D -a 14
-  
-# Добавим в %build
-./configure %{COMMON_CONFIGURE_ARGS} \
-    --with-cc-opt="%{WITH_CC_OPT}" \
-    --add-module=%{_builddir}/%{name}-%{main_version}/nginx-auth-ldap-0.1
-Соберем новый пакет и установим его:
-
-rpmbuild -ba /home/builder/rpmbuild/SPECS/nginx.spec
-
-sudo rpm -i /home/builder/rpmbuild/RPMS/x86_64/nginx-1.10.1-1.el7.ngx.x86_64.rpm
-
-Получим удачную установку nginx:
-
-----------------------------------------------------------------------
-
-Thanks for using nginx!
-
-Please find the official documentation for nginx here:
-* http://nginx.org/en/docs/
-
-Commercial subscriptions for nginx are available on:
-* http://nginx.com/products/
-
-----------------------------------------------------------------------
-Проверим, что модуль установлен через nginx -V:
-
---add-module=/home/builder/rpmbuild/BUILD/nginx-1.10.1/nginx-auth-ldap-0.1
-
-Готово!
-
-
-Создать свой репо и разместить там свой RPM
-Раз уж nginx у нас уже установлен, сделаем из него репозиторий для yum
-
-Почистим стандартные шаблоны nginx и положим вместо них наши RPM пакеты, собранные в первой части ДЗ:
-sudo mkdir /usr/share/nginx/html/repo
-sudo rm -rf /usr/share/nginx/html/*
-sudo cp /home/builder/rpmbuild/RPMS/x86_64/*.rpm /usr/share/nginx/html/repo
-Создадим репозиторий и подготовим:
-
-wget
-http://www.percona.com/downloads/percona-release/redhat/0.1-6/percona-release-0.1-6.noa
-rch.rpm -O /usr/share/nginx/html/repo/percona-release-0.1-6.noarch.rpm
-
-Инициализируем репозиторий командой:
-
-createrepo /usr/share/nginx/html/repo/
->>>>>>> 8564f9ee085b6673f9fdb46c6a5a7393386c351d
- 
  #### Создать свой репозиторий и разместить там ранее собранный RPM
  
  Инициализируем репозиторий командой:
  ```
-[root@packages ~]# createrepo /usr/share/nginx/html/repo/
-Spawning worker 0 with 2 pkgs Видим что в репозитории два пакета
+[root@localhost ~]# createrepo /usr/share/nginx/html/repo/     6.0-1.el7.ngx.x
+Spawning worker 0 with 2 pkgs
 Workers Finished
 Saving Primary metadata
 Saving file lists metadata
 Saving other metadata
-Generating sqlite DBs Обратите внимание что используется sqlite
+Generating sqlite DBs
 Sqlite DBs complete
 ```
 Создать свой репозиторий и разместить там ранее собранный RPM
@@ -226,25 +120,26 @@ autoindex on; Добавили эту директиву
 ```
 * Проверяем синтаксис и перезапускаем NGINX:
 ```
-[root@packages ~]# nginx -t
+[root@localhost ~]# nginx -t
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
-[root@packages ~]# nginx -s reload
+[root@localhost ~]# nginx -s reload
 ```
 Создать свой репозиторий и разместить там ранее собранный RPM
 * Теперь ради интереса можно посмотреть в браузере или curl:
 ```
 [root@packages ~]# lynx http://localhost/repo/
 [root@packages ~]# curl -a http://localhost/repo/
+[root@localhost ~]# curl -a http://localhost/repo/
 <html>
 <head><title>Index of /repo/</title></head>
-<body bgcolor="white">
+<body>
 <h1>Index of /repo/</h1><hr><pre><a href="../">../</a>
-<a href="repodata/">repodata/</a> 29-Nov-2018 10:23 -
-<a href="nginx-1.14.1-1.el7_4.ngx.x86_64.rpm">nginx-1.14.1-1.el7_4.ngx.x86_64.rpm</a>
-29-Nov-2018 09:47 1999600
-<a href="percona-release-0.1-6.noarch.rpm">percona-release-0.1-6.noarch.rpm</a>
-13-Jun-2018 06:34 14520
+<a href="repodata/">repodata/</a>                                          09-Mar-2020 13:05                   -
+<a href="nginx-1.16.0-1.el7.ngx.x86_64.rpm">nginx-1.16.0-1.el7.ngx.x86_64.rpm</a>                  09-Mar-2020 13:04
+         2139668
+<a href="nginx-debuginfo-1.16.0-1.el7.ngx.x86_64.rpm">nginx-debuginfo-1.16.0-1.el7.ngx.x86_64.rpm</a>        09-Mar-2020
+ 13:04             2576084
 </pre><hr></body>
 </html>
 ```
@@ -252,7 +147,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 * Все готово для того, чтобы протестировать репозиторий.
 * Добавим его в /etc/yum.repos.d:
 ```
-[root@packages ~]# cat >> /etc/yum.repos.d/otus.repo << EOF
+[root@localhost ~]# cat >> /etc/yum.repos.d/otus.repo << EOF
 [otus]
 name=otus-linux
 baseurl=http://localhost/repo
@@ -263,17 +158,9 @@ EOF
 Создать свой репозиторий и разместить там ранее собранный RPM
 * Убедимся что репозиторий подключился и посмотрим что в нем есть:
 ```
-[root@packages ~]# yum repolist enabled | grep otus
-otus otus-linux 2
-[root@packages ~]# yum list | grep otus
-nginx 1.14.1 otus
-percona-release.noarch 0.1-6 otus
+[root@localhost ~]# yum repolist enabled | grep otus
+otus                                otus-linux                                 2
+[root@localhost ~]# yum list | grep otus
+nginx-debuginfo.x86_64                      1:1.16.0-1.el7.ngx         otus
 ```
-* Так как NGINX у нас уже стоит установим репозиторий percona-release:
-```
-[root@packages ~]# yum install percona-release -y
-```
-* Все прошло успешно. В случае если вам потребуется обновить репозиторий (а это
-делается при каждом добавлении файлов), снова то выполните команду createrepo
-/usr/share/nginx/html/repo/
- 
+
