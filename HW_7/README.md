@@ -128,8 +128,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 Создать свой репозиторий и разместить там ранее собранный RPM
 * Теперь ради интереса можно посмотреть в браузере или curl:
 ```
-[root@packages ~]# lynx http://localhost/repo/
-[root@packages ~]# curl -a http://localhost/repo/
+
 [root@localhost ~]# curl -a http://localhost/repo/
 <html>
 <head><title>Index of /repo/</title></head>
